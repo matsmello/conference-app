@@ -25,7 +25,26 @@ class CircuitBreaker {
     }
   }
 
+  async callService(requestOptions) {
+    const endpoint = `${requestOptions.method}:${requestOptions.url}`;
+
+    if (!this.canRequest(endpoint)) return false;
+
+    requestOptions.timeout = this.requestTimeout * 1000;
+
+    try {
+      const response = await axios(requestOptions);
+      this.onSuccess(endpoint);
+      return response.data;
+    } catch (err) {
+      this.onFailure(endpoint);
+      return false;
+    }
+  }
+
   canRequest(endpoint) {
+    if (!this.states[endpoint]) this.initState(endpoint);
+
     const state = this.states[endpoint];
 
     if (state.circuit === "CLOSED") return true;
