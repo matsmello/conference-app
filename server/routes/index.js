@@ -13,10 +13,9 @@ module.exports = (param) => {
       const image = await speakers.getImage(
         `${req.params.type}/${req.params.file}`
       );
-
       return image.pipe(res);
     } catch (err) {
-      next(err);
+      return next(err);
     }
   });
 

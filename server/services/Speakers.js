@@ -1,3 +1,4 @@
+/* eslint-disable class-methods-use-this */
 const axios = require("axios");
 const url = require("url");
 const crypto = require("crypto");
@@ -6,7 +7,7 @@ const util = require("util");
 
 const fsexists = util.promisify(fs.exists);
 
-const CircuitBreaker = require("./../lib/CircuitBreaker");
+const CircuitBreaker = require("../lib/CircuitBreaker");
 
 const circuitBreaker = new CircuitBreaker();
 
@@ -22,7 +23,7 @@ class SpeakersService {
     return this.callService({
       method: "get",
       responseType: "stream",
-      url: `http:${ip}:${port}/images/${path}`,
+      url: `http://${ip}:${port}/images/${path}`,
     });
   }
 
@@ -30,7 +31,7 @@ class SpeakersService {
     const { ip, port } = await this.getService("speakers-service");
     return this.callService({
       method: "get",
-      url: `http:${ip}:${port}/names`,
+      url: `http://${ip}:${port}/names`,
     });
   }
 
@@ -38,7 +39,7 @@ class SpeakersService {
     const { ip, port } = await this.getService("speakers-service");
     return this.callService({
       method: "get",
-      url: `http:${ip}:${port}/list-short`,
+      url: `http://${ip}:${port}/list-short`,
     });
   }
 
@@ -46,7 +47,7 @@ class SpeakersService {
     const { ip, port } = await this.getService("speakers-service");
     return this.callService({
       method: "get",
-      url: `http:${ip}:${port}/list`,
+      url: `http://${ip}:${port}/list`,
     });
   }
 
@@ -54,7 +55,7 @@ class SpeakersService {
     const { ip, port } = await this.getService("speakers-service");
     return this.callService({
       method: "get",
-      url: `http:${ip}:${port}/artworks`,
+      url: `http://${ip}:${port}/artwork`,
     });
   }
 
@@ -62,7 +63,7 @@ class SpeakersService {
     const { ip, port } = await this.getService("speakers-service");
     return this.callService({
       method: "get",
-      url: `http:${ip}:${port}/speaker/${shortname}`,
+      url: `http://${ip}:${port}/speaker/${shortname}`,
     });
   }
 
@@ -70,17 +71,16 @@ class SpeakersService {
     const { ip, port } = await this.getService("speakers-service");
     return this.callService({
       method: "get",
-      url: `http:${ip}:${port}/artwork/${shortname}`,
+      url: `http://${ip}:${port}/artwork/${shortname}`,
     });
   }
 
   async callService(requestOptions) {
     const servicePath = url.parse(requestOptions.url).path;
-
     const cacheKey = crypto
       .createHash("md5")
-      .update(requestOptions.method + servicePath);
-
+      .update(requestOptions.method + servicePath)
+      .digest("hex");
     let cacheFile = null;
 
     if (
@@ -89,17 +89,15 @@ class SpeakersService {
     ) {
       cacheFile = `${__dirname}/../../_imagecache/${cacheKey}`;
     }
+
     const result = await circuitBreaker.callService(requestOptions);
 
     if (!result) {
       if (this.cache[cacheKey]) return this.cache[cacheKey];
-
       if (cacheFile) {
         const exists = await fsexists(cacheFile);
-
         if (exists) return fs.createReadStream(cacheFile);
       }
-
       return false;
     }
 
@@ -109,7 +107,6 @@ class SpeakersService {
       const ws = fs.createWriteStream(cacheFile);
       result.pipe(ws);
     }
-
     return result;
   }
 
@@ -117,7 +114,6 @@ class SpeakersService {
     const response = await axios.get(
       `${this.serviceRegistryUrl}/find/${servicename}/${this.serviceVersionIdentifier}`
     );
-
     return response.data;
   }
 }
